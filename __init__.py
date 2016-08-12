@@ -1701,6 +1701,8 @@ class MATERIAL_MT_scenemassive_opt(Menu):
         use_separator(self, context)
         layout.prop(sc.mat_specials, "SCULPT_PAINT", text="Sculpt/Texture paint mode")
         use_separator(self, context)
+        layout.prop(sc.mat_specials, "UV_UNWRAP", text="Set Auto UV Unwrap (Active Object)")
+        use_separator(self, context)
 
         layout.label("Set the Bake Resolution")
         res = str(sc.mat_specials.img_bake_size)
@@ -1922,7 +1924,13 @@ class material_specials_scene_props(PropertyGroup):
             attr="SCULPT_PAINT",
             default=False,
             description=("Conversion geared towards sculpting and painting.\n"
-                         "Creates just only a basic diffuse and not connected image nodes"),
+                         "Creates a diffuse, glossy mixed with layer weight. \n"
+                         "Image nodes are not connected"),
+            )
+    UV_UNWRAP = BoolProperty(
+            attr="UV_UNWRAP",
+            default=False,
+            description=("Use automatical Angle based UV Unwrap of the active Object"),
             )
     img_bake_size = EnumProperty(
             name="Bake Image Size",

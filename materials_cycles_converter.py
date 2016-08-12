@@ -201,11 +201,10 @@ def AutoNodeInitiate(active=False, operator=None):
     if 'FINISHED' in check_path:
         sc = bpy.context.scene
         CHECK_AUTONODE = True
-        collect_report("________________________________________", True, False)
+        collect_report("_______________________", True, False)
         AutoNode(active, operator)
         if sc.mat_specials.SET_FAKE_USER:
             SetFakeUserTex()
-        collect_report("Conversion finished !", False, True)
     else:
         warning_messages(operator, 'DIR_PATH_CONVERT')
 
@@ -626,7 +625,7 @@ def AutoNode(active=False, operator=None):
                     try:
                         # create a new image for texture painting and make it active
                         img_size = (int(sc.mat_specials.img_bake_size) if
-                                        sc.mat_specials.img_bake_size else 1024)
+                                    sc.mat_specials.img_bake_size else 1024)
 
                         bpy.ops.image.new(name="Paint Base Image", width=img_size, height=img_size,
                                           color=(1.0, 1.0, 1.0, 1.0), alpha=True, float=False)
@@ -641,7 +640,8 @@ def AutoNode(active=False, operator=None):
                         shtext.use_custom_color = True
                         shtext.color = NODE_COLOR_PAINT
                         shtext.select = True
-                        collect_report("Creating Image Node for Painting: " + img_name)
+                        collect_report("INFO: Creating Image Node for Painting: " + img_name)
+                        collect_report("Don't forget to save it on Disk")
                         tex_node_collect.append(shtext)
                     except:
                         collect_report("ERROR: Failed to create image and node for Texture Painting")
@@ -710,10 +710,20 @@ class mlrefresh(Operator):
         AutoNodeInitiate(False, self)
 
         if CHECK_AUTONODE is True:
-            bpy.ops.object.editmode_toggle()
-            bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
-            bpy.ops.object.editmode_toggle()
+            enable_unwrap = bpy.context.scene.mat_specials.UV_UNWRAP
+            if enable_unwrap:
+                obj_name = getattr(context.active_object, "name", "UNNAMED OBJECT")
+                try:
+                    bpy.ops.object.editmode_toggle()
+                    bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
+                    bpy.ops.object.editmode_toggle()
+                    collect_report("INFO: UV Unwrapping active object "
+                                   "{}".format(obj_name))
+                except:
+                    collect_report("ERROR: UV Unwrapping failed for "
+                                   "active object {}".format(obj_name))
 
+        collect_report("Conversion finished !", False, True)
         return {'FINISHED'}
 
 
@@ -731,9 +741,19 @@ class mlrefresh_active(Operator):
     def execute(self, context):
         AutoNodeInitiate(True, self)
         if CHECK_AUTONODE is True:
-            bpy.ops.object.editmode_toggle()
-            bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
-            bpy.ops.object.editmode_toggle()
+            obj_name = getattr(context.active_object, "name", "UNNAMED OBJECT")
+            enable_unwrap = bpy.context.scene.mat_specials.UV_UNWRAP
+            if enable_unwrap:
+                try:
+                    bpy.ops.object.editmode_toggle()
+                    bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
+                    bpy.ops.object.editmode_toggle()
+                    collect_report("INFO: UV Unwrapping object {}".format(obj_name))
+                except:
+                    collect_report("ERROR: UV Unwrapping failed for "
+                                   "object {}".format(obj_name))
+
+        collect_report("Conversion finished !", False, True)
         return {'FINISHED'}
 
 
