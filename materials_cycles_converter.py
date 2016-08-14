@@ -257,6 +257,8 @@ def AutoNode(active=False, operator=None):
             Add_Translucent = ''
             Mix_Alpha = ''
             sT = False
+            # check if some link creation failed
+            link_fail = False
 
             for n in TreeNodes.nodes:
                 TreeNodes.nodes.remove(n)
@@ -266,7 +268,10 @@ def AutoNode(active=False, operator=None):
             shader.location = 0, 470
             shout = TreeNodes.nodes.new('ShaderNodeOutputMaterial')
             shout.location = 200, 400
-            links.new(shader.outputs[0], shout.inputs[0])
+            try:
+                links.new(shader.outputs[0], shout.inputs[0])
+            except:
+                link_fail = True
 
             # Create other shader types only sculpt/texture paint mode is False
             sculpt_paint = sc.mat_specials.SCULPT_PAINT
@@ -280,7 +285,10 @@ def AutoNode(active=False, operator=None):
                         TreeNodes.nodes.remove(shader)
                         shader = TreeNodes.nodes.new('ShaderNodeBsdfDiffuse')
                         shader.location = 0, 470
-                        links.new(shader.outputs[0], shout.inputs[0])
+                        try:
+                            links.new(shader.outputs[0], shout.inputs[0])
+                        except:
+                            link_fail = True
 
                 if cmat.raytrace_mirror.use and cmat.raytrace_mirror.reflect_factor > 0.001 and cmat_is_transp:
                     if not shader.type == 'ShaderNodeBsdfGlass':
@@ -288,7 +296,10 @@ def AutoNode(active=False, operator=None):
                         TreeNodes.nodes.remove(shader)
                         shader = TreeNodes.nodes.new('ShaderNodeBsdfGlass')
                         shader.location = 0, 470
-                        links.new(shader.outputs[0], shout.inputs[0])
+                        try:
+                            links.new(shader.outputs[0], shout.inputs[0])
+                        except:
+                            link_fail = True
 
                 if cmat.raytrace_mirror.use and not cmat_is_transp and cmat.raytrace_mirror.reflect_factor > 0.001:
                     if not shader.type == 'ShaderNodeBsdfGlossy':
@@ -296,7 +307,10 @@ def AutoNode(active=False, operator=None):
                         TreeNodes.nodes.remove(shader)
                         shader = TreeNodes.nodes.new('ShaderNodeBsdfGlossy')
                         shader.location = 0, 520
-                        links.new(shader.outputs[0], shout.inputs[0])
+                        try:
+                            links.new(shader.outputs[0], shout.inputs[0])
+                        except:
+                            link_fail = True
 
                 if cmat.emit > 0.001:
                     if (not shader.type == 'ShaderNodeEmission' and not
@@ -306,7 +320,10 @@ def AutoNode(active=False, operator=None):
                         TreeNodes.nodes.remove(shader)
                         shader = TreeNodes.nodes.new('ShaderNodeEmission')
                         shader.location = 0, 450
-                        links.new(shader.outputs[0], shout.inputs[0])
+                        try:
+                            links.new(shader.outputs[0], shout.inputs[0])
+                        except:
+                            link_fail = True
                     else:
                         if not Add_Emission:
                             collect_report("INFO: Add EMISSION shader node for: " + cmat.name)
@@ -316,10 +333,12 @@ def AutoNode(active=False, operator=None):
 
                             shem = TreeNodes.nodes.new('ShaderNodeEmission')
                             shem.location = 180, 380
-
-                            links.new(Add_Emission.outputs[0], shout.inputs[0])
-                            links.new(shem.outputs[0], Add_Emission.inputs[1])
-                            links.new(shader.outputs[0], Add_Emission.inputs[0])
+                            try:
+                                links.new(Add_Emission.outputs[0], shout.inputs[0])
+                                links.new(shem.outputs[0], Add_Emission.inputs[1])
+                                links.new(shader.outputs[0], Add_Emission.inputs[0])
+                            except:
+                                link_fail = True
 
                             shem.inputs['Color'].default_value = (cmat.diffuse_color.r,
                                                                   cmat.diffuse_color.g,
@@ -334,16 +353,17 @@ def AutoNode(active=False, operator=None):
 
                     shtsl = TreeNodes.nodes.new('ShaderNodeBsdfTranslucent')
                     shtsl.location = 400, 350
+                    try:
+                        links.new(Add_Translucent.outputs[0], shout.inputs[0])
+                        links.new(shtsl.outputs[0], Add_Translucent.inputs[1])
 
-                    links.new(Add_Translucent.outputs[0], shout.inputs[0])
-                    links.new(shtsl.outputs[0], Add_Translucent.inputs[1])
+                        if Add_Emission:
+                            links.new(Add_Emission.outputs[0], Add_Translucent.inputs[0])
+                        else:
+                            links.new(shader.outputs[0], Add_Translucent.inputs[0])
+                    except:
+                        link_fail = True
 
-                    if Add_Emission:
-                        links.new(Add_Emission.outputs[0], Add_Translucent.inputs[0])
-                        pass
-                    else:
-                        links.new(shader.outputs[0], Add_Translucent.inputs[0])
-                        pass
                     shtsl.inputs['Color'].default_value = (cmat.translucency,
                                                            cmat.translucency,
                                                            cmat.translucency, 1)
@@ -496,7 +516,10 @@ def AutoNode(active=False, operator=None):
                                 TreeNodes.nodes.remove(shader)
                                 shader = TreeNodes.nodes.new('ShaderNodeBsdfTransparent')
                                 shader.location = 0, 470
-                                links.new(shader.outputs[0], shout.inputs[0])
+                                try:
+                                    links.new(shader.outputs[0], shout.inputs[0])
+                                except:
+                                    link_fail = True
 
                         shader.inputs['Color'].default_value = (cmat.diffuse_color.r,
                                                                 cmat.diffuse_color.g,
@@ -504,8 +527,10 @@ def AutoNode(active=False, operator=None):
 
                     if sT and sculpt_paint is False:
                         if tex.use_map_color_diffuse:
-                            links.new(shtext.outputs[0], shader.inputs[0])
-
+                            try:
+                                links.new(shtext.outputs[0], shader.inputs[0])
+                            except:
+                                pass
                         if tex.use_map_emit:
                             if not Add_Emission:
                                 collect_report("INFO: Mix EMISSION + Texture shader node for: " + cmat.name)
@@ -519,19 +544,24 @@ def AutoNode(active=False, operator=None):
                                 shem = TreeNodes.nodes.new('ShaderNodeEmission')
                                 shem.location = 180, 380
 
-                                links.new(Add_Emission.outputs[0], shout.inputs[0])
-                                links.new(shem.outputs[0], Add_Emission.inputs[1])
-                                links.new(shader.outputs[0], Add_Emission.inputs[0])
+                                try:
+                                    links.new(Add_Emission.outputs[0], shout.inputs[0])
+                                    links.new(shem.outputs[0], Add_Emission.inputs[1])
+                                    links.new(shader.outputs[0], Add_Emission.inputs[0])
+                                    links.new(shtext.outputs[0], shem.inputs[0])
+                                except:
+                                    link_fail = True
 
                                 shem.inputs['Color'].default_value = (cmat.diffuse_color.r,
                                                                       cmat.diffuse_color.g,
                                                                       cmat.diffuse_color.b, 1)
                                 shem.inputs['Strength'].default_value = intensity * 2
 
-                            links.new(shtext.outputs[0], shem.inputs[0])
-
                         if tex.use_map_mirror:
-                            links.new(shader.inputs[0], shtext.outputs[0])
+                            try:
+                                links.new(shader.inputs[0], shtext.outputs[0])
+                            except:
+                                link_fail = True
 
                         if tex.use_map_translucency:
                             if not Add_Translucent:
@@ -545,16 +575,18 @@ def AutoNode(active=False, operator=None):
 
                                 shtsl = TreeNodes.nodes.new('ShaderNodeBsdfTranslucent')
                                 shtsl.location = 180, 240
+                                try:
+                                    links.new(shtsl.outputs[0], Add_Translucent.inputs[1])
 
-                                links.new(shtsl.outputs[0], Add_Translucent.inputs[1])
-
-                                if Add_Emission:
-                                    links.new(Add_Translucent.outputs[0], shout.inputs[0])
-                                    links.new(Add_Emission.outputs[0], Add_Translucent.inputs[0])
-                                    pass
-                                else:
-                                    links.new(Add_Translucent.outputs[0], shout.inputs[0])
-                                    links.new(shader.outputs[0], Add_Translucent.inputs[0])
+                                    if Add_Emission:
+                                        links.new(Add_Translucent.outputs[0], shout.inputs[0])
+                                        links.new(Add_Emission.outputs[0], Add_Translucent.inputs[0])
+                                        pass
+                                    else:
+                                        links.new(Add_Translucent.outputs[0], shout.inputs[0])
+                                        links.new(shader.outputs[0], Add_Translucent.inputs[0])
+                                except:
+                                    link_fail = True
 
                             links.new(shtext.outputs[0], shtsl.inputs[0])
 
@@ -600,17 +632,20 @@ def AutoNode(active=False, operator=None):
                                         tMask.image = imask
 
                                 if tMask:
-                                    links.new(Mix_Alpha.inputs[0], tMask.outputs[1])
-                                    links.new(shout.inputs[0], Mix_Alpha.outputs[0])
-                                    links.new(sMask.outputs[0], Mix_Alpha.inputs[1])
+                                    try:
+                                        links.new(Mix_Alpha.inputs[0], tMask.outputs[1])
+                                        links.new(shout.inputs[0], Mix_Alpha.outputs[0])
+                                        links.new(sMask.outputs[0], Mix_Alpha.inputs[1])
 
-                                    if not Add_Translucent:
-                                        if Add_Emission:
-                                            links.new(Mix_Alpha.inputs[2], Add_Emission.outputs[0])
+                                        if not Add_Translucent:
+                                            if Add_Emission:
+                                                links.new(Mix_Alpha.inputs[2], Add_Emission.outputs[0])
+                                            else:
+                                                links.new(Mix_Alpha.inputs[2], shader.outputs[0])
                                         else:
-                                            links.new(Mix_Alpha.inputs[2], shader.outputs[0])
-                                    else:
-                                        links.new(Mix_Alpha.inputs[2], Add_Translucent.outputs[0])
+                                            links.new(Mix_Alpha.inputs[2], Add_Translucent.outputs[0])
+                                    except:
+                                        link_fail = True
                                 else:
                                     collect_report("ERROR: Mix Alpha could not be created "
                                                    "(mask image could not be loaded)")
@@ -618,8 +653,11 @@ def AutoNode(active=False, operator=None):
                         if tex.use_map_normal:
                             t = TreeNodes.nodes.new('ShaderNodeRGBToBW')
                             t.location = -0, 300
-                            links.new(t.outputs[0], shout.inputs[2])
-                            links.new(shtext.outputs[0], t.inputs[0])
+                            try:
+                                links.new(t.outputs[0], shout.inputs[2])
+                                links.new(shtext.outputs[1], t.inputs[0])
+                            except:
+                                link_fail = True
 
                 if sculpt_paint:
                     try:
@@ -647,23 +685,72 @@ def AutoNode(active=False, operator=None):
                         collect_report("ERROR: Failed to create image and node for Texture Painting")
 
                 # spread the texture nodes, create a node frame if necessary
+                # create texture coordinate and mapping too
                 row_node, col_node = -1, False
                 check_frame = bool(len(tex_node_collect) > 1)
-                node_frame = None
+                node_frame, tex_map, node_f_coord = None, None, None
+                tex_map_collection, tex_map_coord = [], None
+
                 if check_frame:
                     node_frame = TreeNodes.nodes.new('NodeFrame')
                     node_frame.name = 'Converter Textures'
                     node_frame.label = 'Converter Textures'
 
+                    node_f_coord = TreeNodes.nodes.new('NodeFrame')
+                    node_f_coord.name = "Coordinates"
+                    node_f_coord.label = "Coordinates"
+
+                if tex_node_collect:
+                    tex_map_coord = TreeNodes.nodes.new('ShaderNodeTexCoord')
+                    tex_map_coord.location = -900, 575
+
                 for node_tex in tex_node_collect:
                     row_node = (row_node + 1 if not col_node else row_node)
                     col_node = not col_node
-                    tex_node_loc = -(200 + (row_node * 150)), (400 if col_node else 650)
-                    node_tex.location = tex_node_loc
-                    if check_frame:
-                        node_tex.parent = node_frame
+                    tex_node_loc = (-(200 + (row_node * 150)), (400 if col_node else 650))
+                    try:
+                        node_tex.location = tex_node_loc
+                        if check_frame:
+                            node_tex.parent = node_frame
 
-                tex_node_collect = []
+                        tex_node_name = getattr(node_tex, "name", "NO NAME")
+                        tex_map_name = "Mapping: {}".format(tex_node_name)
+                        tex_map = TreeNodes.nodes.new('ShaderNodeMapping')
+                        tex_map.width = 240
+                        tex_map.hide = True
+                        tex_map.width_hidden = 150
+                        tex_map.name = tex_map_name
+                        tex_map.label = tex_map_name
+                        tex_map_collection.append(tex_map)
+                        links.new(tex_map.outputs[0], node_tex.inputs[0])
+                    except:
+                        link_fail = True
+                        continue
+
+                if tex_map_collection:
+                    row_map_tex = -(350 + (row_node + 1) * 150)
+                    col_map_start = (((len(tex_map_collection) / 2) * 50) + 575)
+
+                    if tex_map_coord:
+                        tex_map_coord.location = ((row_map_tex - 250), 500)
+
+                    for maps in tex_map_collection:
+                        row_node += 1
+                        tex_map_loc = row_map_tex, (-(row_node * 50) + col_map_start)
+                        try:
+                            maps.location = tex_map_loc
+                            if node_f_coord:
+                                maps.parent = node_f_coord
+
+                            links.new(maps.inputs[0], tex_map_coord.outputs['UV'])
+                        except:
+                            link_fail = True
+                            continue
+
+                tex_node_collect, tex_map_collection = [], []
+
+                if link_fail:
+                    collect_report("ERROR: Some of the node links failed to connect")
 
             else:
                 collect_report("No textures in the Scene, no Image Nodes to add")
@@ -714,6 +801,7 @@ class mlrefresh(Operator):
             if enable_unwrap:
                 obj_name = getattr(context.active_object, "name", "UNNAMED OBJECT")
                 try:
+                    # it's possible to the active object would fail UV Unwrap
                     bpy.ops.object.editmode_toggle()
                     bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
                     bpy.ops.object.editmode_toggle()
@@ -745,6 +833,7 @@ class mlrefresh_active(Operator):
             enable_unwrap = bpy.context.scene.mat_specials.UV_UNWRAP
             if enable_unwrap:
                 try:
+                    # you can already guess it, what could happen here
                     bpy.ops.object.editmode_toggle()
                     bpy.ops.uv.unwrap(method='ANGLE_BASED', margin=0.001)
                     bpy.ops.object.editmode_toggle()
