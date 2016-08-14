@@ -264,12 +264,16 @@ def AutoNode(active=False, operator=None):
                 TreeNodes.nodes.remove(n)
 
             # Starting point is diffuse BSDF and output material
+            # and a Color Ramp node
             shader = TreeNodes.nodes.new('ShaderNodeBsdfDiffuse')
             shader.location = 0, 470
+            shader_val = TreeNodes.nodes.new('ShaderNodeValToRGB')
+            shader_val.location = 0, 270
             shout = TreeNodes.nodes.new('ShaderNodeOutputMaterial')
             shout.location = 200, 400
             try:
                 links.new(shader.outputs[0], shout.inputs[0])
+                links.new(shader.inputs[0], shader_val.outputs[0])
             except:
                 link_fail = True
 
@@ -287,6 +291,7 @@ def AutoNode(active=False, operator=None):
                         shader.location = 0, 470
                         try:
                             links.new(shader.outputs[0], shout.inputs[0])
+                            links.new(shader.inputs[0], shader_val.outputs[0])
                         except:
                             link_fail = True
 
@@ -298,6 +303,7 @@ def AutoNode(active=False, operator=None):
                         shader.location = 0, 470
                         try:
                             links.new(shader.outputs[0], shout.inputs[0])
+                            links.new(shader.inputs[0], shader_val.outputs[0])
                         except:
                             link_fail = True
 
@@ -309,6 +315,7 @@ def AutoNode(active=False, operator=None):
                         shader.location = 0, 520
                         try:
                             links.new(shader.outputs[0], shout.inputs[0])
+                            links.new(shader.inputs[0], shader_val.outputs[0])
                         except:
                             link_fail = True
 
@@ -322,6 +329,7 @@ def AutoNode(active=False, operator=None):
                         shader.location = 0, 450
                         try:
                             links.new(shader.outputs[0], shout.inputs[0])
+                            links.new(shader.inputs[0], shader_val.outputs[0])
                         except:
                             link_fail = True
                     else:
@@ -376,11 +384,13 @@ def AutoNode(active=False, operator=None):
                 shader.inputs['Color'].default_value = PAINT_SC_COLOR
                 shader.inputs['Roughness'].default_value = 0.9
 
-                # remove links from the default shader and reroute
+                # remove Color Ramp and links from the default shader and reroute
                 try:
                     shout.location = 400, 460
                     for link in links:
                         links.remove(link)
+
+                    TreeNodes.nodes.remove(shader_val)
 
                     clay_frame = TreeNodes.nodes.new('NodeFrame')
                     clay_frame.name = 'Clay Material'
@@ -521,14 +531,14 @@ def AutoNode(active=False, operator=None):
                                 except:
                                     link_fail = True
 
-                        shader.inputs['Color'].default_value = (cmat.diffuse_color.r,
-                                                                cmat.diffuse_color.g,
-                                                                cmat.diffuse_color.b, 1)
+                                shader.inputs['Color'].default_value = (cmat.diffuse_color.r,
+                                                                        cmat.diffuse_color.g,
+                                                                        cmat.diffuse_color.b, 1)
 
                     if sT and sculpt_paint is False:
                         if tex.use_map_color_diffuse:
                             try:
-                                links.new(shtext.outputs[0], shader.inputs[0])
+                                links.new(shtext.outputs[0], shader_val.inputs[0])
                             except:
                                 pass
                         if tex.use_map_emit:
@@ -559,7 +569,7 @@ def AutoNode(active=False, operator=None):
 
                         if tex.use_map_mirror:
                             try:
-                                links.new(shader.inputs[0], shtext.outputs[0])
+                                links.new(shtext.outputs[0], shader_val.inputs[0])
                             except:
                                 link_fail = True
 
@@ -585,10 +595,10 @@ def AutoNode(active=False, operator=None):
                                     else:
                                         links.new(Add_Translucent.outputs[0], shout.inputs[0])
                                         links.new(shader.outputs[0], Add_Translucent.inputs[0])
+
+                                    links.new(shtext.outputs[0], shtsl.inputs[0])
                                 except:
                                     link_fail = True
-
-                            links.new(shtext.outputs[0], shtsl.inputs[0])
 
                         if tex.use_map_alpha:
                             if not Mix_Alpha:
@@ -664,11 +674,12 @@ def AutoNode(active=False, operator=None):
                         # create a new image for texture painting and make it active
                         img_size = (int(sc.mat_specials.img_bake_size) if
                                     sc.mat_specials.img_bake_size else 1024)
-
-                        bpy.ops.image.new(name="Paint Base Image", width=img_size, height=img_size,
+                        paint_mat_name = getattr(cmat, "name", "NO NAME")
+                        paint_img_name = "Paint Base Image {}".format(paint_mat_name)
+                        bpy.ops.image.new(name=paint_img_name, width=img_size, height=img_size,
                                           color=(1.0, 1.0, 1.0, 1.0), alpha=True, float=False)
 
-                        img = bpy.data.images.get("Paint Base Image")
+                        img = bpy.data.images.get(paint_img_name)
                         img_name = (img.name if hasattr(img, "name") else "NO NAME")
                         shtext = TreeNodes.nodes.new('ShaderNodeTexImage')
                         shtext.location = tex_node_loc
@@ -679,7 +690,7 @@ def AutoNode(active=False, operator=None):
                         shtext.color = NODE_COLOR_PAINT
                         shtext.select = True
                         collect_report("INFO: Creating Image Node for Painting: " + img_name)
-                        collect_report("Don't forget to save it on Disk")
+                        collect_report("WARNING: Don't forget to save it on Disk")
                         tex_node_collect.append(shtext)
                     except:
                         collect_report("ERROR: Failed to create image and node for Texture Painting")
